@@ -1,0 +1,3 @@
+-I
+/usr/include/freetype2/ 
+
