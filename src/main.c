@@ -98,7 +98,7 @@ struct wl_buffer *draw(client_ptr client) {
         }
     }
     
-    char *str = "Hello FT, World! Now I Can Render Fonts. So Now We Should Have new Lines when it gets to long";
+    char *str = "Send 200 in unmarked bills or Rust GETS IT!!!";
 
     ft_render_text_to_fb(data, str, width, height, client->xpos, client->ypos, client->font);
     
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 
     client.height = 400;
     client.width = 640;
-    ft_init(&client.font, "/usr/share/fonts/NerdFonts/ttf/Go Mono Bold Nerd Font Complete.ttf");    
+    ft_init(&client.font, "/usr/share/fonts/TTF/DejaVuSansMono.ttf");    
     client.wl_display = wl_display_connect(NULL);
     client.wl_registry = wl_display_get_registry(client.wl_display);
 
