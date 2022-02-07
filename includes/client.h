@@ -14,7 +14,11 @@ typedef struct client {
     struct wl_surface *wl_surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
+    struct wl_seat *wl_seat;
 
+    struct wl_keyboard *keyboard;
+    struct wl_pointer *pointer;
+    struct wl_touchpad *touch;
     //client height and width 
     int32_t height;
     int32_t width;

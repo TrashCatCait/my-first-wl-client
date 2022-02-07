@@ -1,6 +1,6 @@
+#define _POSIX_C_SOURCE 200112L
 #include <fcft/fcft.h>
 #include <stddef.h>
-#define _POSIX_C_SOURCE 200112L
 #include <stdio.h>
 #include <time.h>
 #include <wayland-client.h>
@@ -19,7 +19,6 @@
 #include <fonts.h>
 #include <pixman.h>
 
-
 void xdg_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial) {
     xdg_wm_base_pong(xdg_wm_base, serial);
 }
@@ -28,11 +27,30 @@ static struct xdg_wm_base_listener xdg_wm_base_listener = {
     .ping = xdg_ping,
 };
 
+static void wl_seat_capabilities(void *data, struct wl_seat *wl_seat, uint32_t capabilities) {
+    struct client_state *state = data;
+}
+
+static void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name) {
+    printf("seat name: %s\n", name);
+}
+
+
+static struct wl_seat_listener seat_listener = {
+    .capabilities = wl_seat_capabilities,
+    .name = wl_seat_name
+};
+
+
 static void registry_handle_global(void *data, struct wl_registry *wl_registry, uint32_t name,
         const char *interface, uint32_t version) {
     client_ptr state = data;
+     
 
-    printf("registry handle global called interface: %s, version: %u, name: %u ", interface, version, name);
+    printf("registry handle global called interface: %s, version: %u, name: %u ", 
+	    interface, version, name
+	    );
+
     if(strcmp(interface, wl_compositor_interface.name) == 0) {
         state->wl_compositor = wl_registry_bind(wl_registry, name,
                 &wl_compositor_interface, version);
@@ -44,7 +62,14 @@ static void registry_handle_global(void *data, struct wl_registry *wl_registry, 
     } else if(strcmp(interface, wl_shm_interface.name) == 0) {
         state->wl_shm = wl_registry_bind(wl_registry, name, &wl_shm_interface, version);
         printf("Binding wl_shm \n");
-    } else {
+    } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+        state->wl_seat = wl_registry_bind(wl_registry, name,
+		&wl_seat_interface, 7);
+        wl_seat_add_listener(state->wl_seat, &seat_listener, state);
+	printf("Binding wl_seat\n");
+    }
+
+    else {
         printf("<-- (Unhandled Event)\n");
     }
 }
@@ -176,8 +201,10 @@ static struct xdg_surface_listener xdg_surface_listener = {
     .configure = xdg_surface_configure,
 };
 
+//Handle compositor send us the close event
 static void xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel) {
     client_ptr state = data;
+    printf("closing\n");
     state->closed = 1;
 }
 
@@ -199,8 +226,6 @@ static struct xdg_toplevel_listener xdg_toplevel_listener = {
 };
 
 
-static client_t client = { 0 };
-
 void cleanup(client_ptr client) {
     font_clean(client->font);
 
@@ -214,9 +239,10 @@ void cleanup(client_ptr client) {
     wl_display_disconnect(client->wl_display);
 }
 
+static client_t client = { 0 };
+
 void sig_handle(int sig) {
     cleanup(&client);
-
     exit(1);
 }
 
@@ -248,7 +274,7 @@ int main(int argc, char **argv) {
  
     while (wl_display_dispatch(client.wl_display)) {
         if(client.closed == 1) {
-            
+	    break; 
         }
     }
 
