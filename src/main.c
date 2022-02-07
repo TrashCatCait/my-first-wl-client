@@ -94,15 +94,14 @@ struct wl_buffer *draw(client_ptr client) {
     wl_shm_pool_destroy(pool);
     close(fd);
 
-    /* Draw checkerboxed background */
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-                data[y * width + x] = 0xaa282a36;
+                data[y * width + x] = 0xaa282828;
         }
     }
     
-
-   pixman_image_t *canvas = pixman_image_create_bits(PIXMAN_a8r8g8b8, width, height, data, width * sizeof(uint32_t)); 
+    //Attach our data mmap to a pixmap image
+    pixman_image_t *canvas = pixman_image_create_bits(PIXMAN_a8r8g8b8, width, height, data, width * sizeof(uint32_t)); 
     
     static const uint32_t hello[] = U"Hello World!";
 
