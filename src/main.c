@@ -1,3 +1,5 @@
+#include <fcft/fcft.h>
+#include <stddef.h>
 #define _POSIX_C_SOURCE 200112L
 #include <stdio.h>
 #include <time.h>
@@ -15,6 +17,7 @@
 #include <shm.h>
 #include <client.h>
 #include <fonts.h>
+#include <pixman.h>
 
 
 void xdg_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial) {
@@ -98,11 +101,63 @@ struct wl_buffer *draw(client_ptr client) {
         }
     }
     
-    char *str = "Send 200 in unmarked bills or Rust GETS IT!!!";
 
-    ft_render_text_to_fb(data, str, width, height, client->xpos, client->ypos, client->font);
+   pixman_image_t *canvas = pixman_image_create_bits(PIXMAN_a8r8g8b8, width, height, data, width * sizeof(uint32_t)); 
     
+    static const uint32_t hello[] = U"Hello World!";
 
+    struct {
+	int x;
+	int y;
+    } pen = {.x = 0, .y = 0};
+    
+    pixman_image_t *color = pixman_image_create_solid_fill(
+	    &(pixman_color_t) {
+		.red = 0xffff,
+		.green = 0xffff,
+		.blue = 0xffff,
+		.alpha = 0xffff,
+	    });
+
+    for(size_t i = 0; i < sizeof(hello) / sizeof(hello[0]) - 1; i++) {
+	const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(
+		client->font,
+		hello[i],
+		FCFT_SUBPIXEL_NONE
+		);
+
+	if(glyph == NULL) 
+	    continue;
+
+	long x_kern = 0;
+	if(i > 0) 
+	    fcft_kerning(client->font, hello[i - 1], hello[i], &x_kern, NULL);
+	
+	pen.x += x_kern;
+
+       if (pixman_image_get_format(glyph->pix) == PIXMAN_a8r8g8b8) {
+	   /* Glyph is a pre-rendered image; typically a color emoji */
+	   pixman_image_composite32(
+	       PIXMAN_OP_OVER, glyph->pix, NULL, canvas, 0, 0, 0, 0,
+	       pen.x + glyph->x, pen.y + client->font->ascent - glyph->y,
+	       glyph->width, glyph->height);
+       }
+
+       else {
+	   /* Glyph is an alpha mask */
+	   pixman_image_composite32(
+	       PIXMAN_OP_OVER, color, glyph->pix, canvas, 0, 0, 0, 0,
+	       pen.x + glyph->x, pen.y + client->font->ascent - glyph->y,
+	       glyph->width, glyph->height);
+
+       }
+       /* Advance pen position */
+       pen.x += glyph->advance.x;
+
+
+    }
+    pixman_image_unref(canvas);
+    pixman_image_unref(color); 
     munmap(data, size);
     wl_buffer_add_listener(buffer, &wl_buffer_listener, NULL);
     return buffer;
@@ -148,8 +203,8 @@ static struct xdg_toplevel_listener xdg_toplevel_listener = {
 static client_t client = { 0 };
 
 void cleanup(client_ptr client) {
-    FT_Done_FreeType(client->font.lib);
-        
+    font_clean(client->font);
+
     xdg_toplevel_destroy(client->xdg_toplevel);
     xdg_surface_destroy(client->xdg_surface);
     wl_surface_destroy(client->wl_surface);
@@ -170,10 +225,10 @@ int main(int argc, char **argv) {
     
     signal(SIGTERM, sig_handle);
     signal(SIGINT, sig_handle);
-
+    
+    client.font = font_setup();
     client.height = 400;
     client.width = 640;
-    ft_init(&client.font, "/usr/share/fonts/TTF/DejaVuSansMono.ttf");    
     client.wl_display = wl_display_connect(NULL);
     client.wl_registry = wl_display_get_registry(client.wl_display);
 

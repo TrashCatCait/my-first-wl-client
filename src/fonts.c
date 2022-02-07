@@ -1,67 +1,33 @@
-#include <ft2build.h>
-#include <freetype/freetype.h>
-#include <stdint.h>
-#include <client.h>
+#include <fcft/fcft.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
-void ft_init(ft_font_ptr font, char *fntpath) {
+
+
+struct fcft_font *font_setup() {
+    fcft_init(FCFT_LOG_COLORIZE_NEVER, false, FCFT_LOG_CLASS_NONE);
+
+    fcft_set_scaling_filter(FCFT_SCALING_FILTER_LANCZOS3);
     
-    if(FT_Init_FreeType(&font->lib) == 0) {
-        if(FT_New_Face(font->lib, fntpath, 0, &font->face) == 0) {
+    struct fcft_font *font = fcft_from_name( 
+	    2,
+	    (const char *[]) { 
+	    "Fira Code:size=20",
+	    "Serif:size=10:weight=bold", 
+	    },
+	    "slant=italic:dpi=140" 
+	    );
+   
+    
+    struct fcft_glyph g;
+    
 
-        } else {
-            printf("Face Error\n");
-            FT_Done_FreeType(font->lib);
-            return;
-        }
-    } else {
-        printf("Libaray Error\n");
-    }
+    return font;
 }
 
-void ft_render_text_to_fb(uint32_t *fb, char *str, int32_t width, int32_t height, int32_t x, int32_t y, ft_font_t font) {
-    while(*str != '\0') {
-        int ptsz = 20; //Pixel size of font 
-        if(FT_Set_Pixel_Sizes(font.face, 0, ptsz) == 0) {
-            FT_ULong character = *str;
-            FT_UInt gi = FT_Get_Char_Index(font.face, character);
-            if(gi != 0) {
-                FT_Load_Glyph(font.face, gi, FT_LOAD_NO_BITMAP);
-                int bbox_ymax = font.face->bbox.yMax / 64;
-                int glyph_width = font.face->glyph->metrics.width / 64;
-                int advance = font.face->glyph->metrics.horiAdvance / 64;
-                int x_off = (advance - glyph_width) / 2;
-                int y_off = bbox_ymax - (font.face->glyph->metrics.horiBearingY / 64);
-		printf("ymax %d, gwid %d, advan %d, xoff %d, yoff %d\n", bbox_ymax, glyph_width, advance, x_off, y_off);
-                FT_Render_Glyph(font.face->glyph, FT_RENDER_MODE_NORMAL);
 
-                for(int i = 0; i < (int)font.face->glyph->bitmap.rows; i++) {
-                    int row_offset = y + i + y_off;
-                    for(int j = 0; j < (int)font.face->glyph->bitmap.width; j++) {
-                        unsigned char ptr = font.face->glyph->bitmap.buffer[i * font.face->glyph->bitmap.pitch + j];
-                        if(x + j + x_off >= width) {
-                            y += ptsz;
-                            x = 0;
-                        }
-			if(y + i + y_off >= height) {
-			    printf("Refusing to render not enough space\n");
-			    break;
-			}
-                        if(ptr) {
-                            fb[(x + j + x_off) + (y + i + y_off) * width] = 0xfff8f8f2;
-                        } 
-                    }
-                }
-                x += advance;
-                str++;
-            } else {
-                printf("Glyph Index Error\n");
-                //Nothing 
-            }
-        } else {
-            printf("Error Setting Font Size\n");
-            //Nothing 
-        }
-    }
+void font_clean(struct fcft_font *font) {
+    fcft_destroy(font);
+
+    fcft_fini();
 }
-

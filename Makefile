@@ -1,9 +1,8 @@
 CC=clang
 LD=lld
-
-INCS=-I/usr/include/freetype2/ -I./includes
+INCS=-I/usr/include/freetype2/ -I./includes -I/usr/include/pixman-1
 CFLAGS=-O3 $(INCS)
-LIBS=-lfreetype -lwayland-client 
+LIBS=-lpixman-1 -lwayland-client -I/usr/include/pixman-1 -lfcft -L/usr/local/lib
 LFLAGS=-fuse-ld=$(LD) $(LIBS)
 
 TARGET=client 

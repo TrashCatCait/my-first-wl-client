@@ -1,9 +1,9 @@
 #pragma once 
 
-#include <fonts.h>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <xdg-shell-client-protocol.h>
+#include <fcft/fcft.h>
 
 typedef struct client {
     struct wl_display *wl_display;
@@ -25,5 +25,5 @@ typedef struct client {
 
     uint8_t closed;
 
-    ft_font_t font;
+    struct fcft_font *font;
 } client_t, *client_ptr;

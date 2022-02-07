@@ -1,5 +1,5 @@
 -I
-/usr/include/freetype2/ 
+/usr/include/pixman-1/ 
 -I
 ./includes
-
+-fno-short-wchar
